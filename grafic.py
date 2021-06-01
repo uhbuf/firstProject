@@ -1,11 +1,21 @@
 import sys
 import parse
 from parseSlovar import *
+import time
 from PyQt5.QtWidgets import *
-from PyQt5.QtCore import Qt,QObject,pyqtSignal,QThread,pyqtSlot
+from PyQt5.QtCore import Qt,QObject,pyqtSignal,QThread,pyqtSlot,QRunnable,QThreadPool
 from PyQt5.QtWidgets import QApplication
 from PyQt5.QtWidgets import QWidget,QAction
 from PyQt5.QtGui import QTextCursor
+import pyttsx3
+class Voice(QThread):
+    def __init__(self,slovo):
+        super().__init__()
+        self.slovo=slovo
+    def run(self):
+        self.voice = pyttsx3.init()
+        self.voice.say(self.slovo)
+        self.voice.runAndWait()
 class Main_Window(QDialog): # Главное окно
     def __init__(self):
         super().__init__()
@@ -39,6 +49,7 @@ class TextEdit(QTextEdit):
     def __init__(self):
         super().__init__()
         self.slovo=str
+        self.voice=pyttsx3.init()
         self.LeksSlovar=QAction()
         self.SlovSlov=QAction()
         self.searchSlovar = QAction("Найти в словаре", self)
@@ -91,8 +102,8 @@ class Leks_slovar(QWidget): # вкладка лексического слова
         hbox.addWidget(self.button_prev)
         hbox.addWidget(self.button_next)
         hbox.addWidget(self.poisk)
+        hbox.addWidget(button_leks)
         vbox.addLayout(hbox)
-        vbox.addWidget(button_leks)
         vbox.addWidget(self.textBrowser)
         self.setLayout(vbox)
         #####
@@ -104,6 +115,7 @@ class Leks_slovar(QWidget): # вкладка лексического слова
         self.button_prev.setEnabled(False)
         button_leks.setShortcut('Ctrl+S')
         button_leks.pressed.connect(self.Obrabotka)
+        button_leks.setStyleSheet('background-color: red;border-style: outset;border-width: 2px;border-radius: 10px;border-color: beige;font: bold 14px;min-width: 10em;padding: 6px;')
         #######
         self.show()
     def NovoeSlovo(self):
@@ -124,6 +136,8 @@ class Leks_slovar(QWidget): # вкладка лексического слова
     def Obrabotka(self):
         self.textBrowser.clear()
         slovo=self.poisk.text()
+        thread = Voice(slovo)
+        thread.start()
         if(self.t==True):
             self.masSlov=self.masSlov[0:self.pos]
             self.masSlov.append(slovo)
@@ -172,6 +186,9 @@ class Slovar(QWidget):
     def vivodSlovar(self):
         self.textEdit.clear()
         slovo=parseSlovar(self.poiskSlova.text())
+        voice=pyttsx3.init()
+        voice.say(self.poiskSlova.text())
+        voice.runAndWait()
         if('dopolnenie' in slovo):
             temp=slovo['dopolnenie']
             for i in temp:
@@ -205,12 +222,22 @@ class Table(QWidget):
         self.ZagruzkaSlov()
         button.pressed.connect(self.NovoeSlovo)
         button1.pressed.connect(self.DeleteSlovo)
+        #header = self.table.horizontalHeader()
+        #header.setSectionResizeMode(0, QHeaderView.ResizeToContents)
+        #header.setSectionResizeMode(1, QHeaderView.ResizeToContents)
+        #header.setSectionResizeMode(2, QHeaderView.ResizeToContents)
+        #header.setSectionResizeMode(3, QHeaderView.Stretch)
         self.show()
     def DeleteSlovo(self):
         t=self.table.selectedRanges()
         t=t[0].bottomRow()
-        print(t)
+        self.kolvo-=1
+        self.slova.pop(t)
         self.table.removeRow(t)
+        file=open("from.txt",'w')
+        for i in self.slova:
+            file.write(i+"\n")
+        file.close
     def vvodNovogoSlova(self,slovo):
         self.table.setRowCount(self.kolvo+1)
         results = parseSlovar(slovo)

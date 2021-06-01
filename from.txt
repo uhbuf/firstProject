@@ -1,12 +1,7 @@
-home
-State
 joke
-hope
-dog
+test
+adopt
+leave
+above
+
 home
-smile
-going
-approve
-entirely
-particular
-considered
